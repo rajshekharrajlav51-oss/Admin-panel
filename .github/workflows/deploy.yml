@@ -1,0 +1,49 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main # Or your default branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /var/www/html # Change this to your actual project directory on EC2
+            
+            # Pull the latest code
+            git pull origin main
+            
+            # Install/update PHP dependencies
+            composer install --no-interaction --prefer-dist --optimize-autoloader
+            
+            # Install/update Node.js dependencies and build assets (uncomment if needed)
+            # npm install
+            # npm run build
+            
+            # Run database migrations
+            php artisan migrate --force
+            
+            # Clear and cache routes, config, and views
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            
+            # Restart queues if you are using them (uncomment if needed)
+            # php artisan queue:restart
+            
+            # Restart Nginx/PHP-FPM or Apache (uncomment based on your server setup)
+            # sudo systemctl restart nginx
+            # sudo systemctl restart php8.2-fpm
