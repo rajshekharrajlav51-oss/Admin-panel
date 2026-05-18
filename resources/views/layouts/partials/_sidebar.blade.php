@@ -42,14 +42,19 @@
 
                     // Super Admin bypass only applies to admin panel
                     $isSuperAdmin = $currentPanel === 'admin' && $userRole->hasRole(DefaultSystemRolesEnum::SUPER_ADMIN());
+                    $isAdminPanelUser = $currentPanel === 'admin' && (($userRole->access_panel->value ?? null) === 'admin');
 
                     // Default Seller role can view the full seller module
                     // While impersonating as seller, treat the user as default seller for menu visibility
                     $isDefaultSeller = $currentPanel === 'seller' && ($isImpersonating || $userRole->hasRole(DefaultSystemRolesEnum::SELLER()));
 
-                    $canSee = function ($perm) use ($userRole, $allPerms, $isSuperAdmin, $isDefaultSeller) {
+                    $canSee = function ($perm) use ($userRole, $allPerms, $isSuperAdmin, $isDefaultSeller, $isAdminPanelUser) {
                         // If default seller role on seller panel -> always visible
                         if ($isDefaultSeller) {
+                            return true;
+                        }
+                        // Show the full navigation for authenticated admin panel users.
+                        if ($isAdminPanelUser) {
                             return true;
                         }
                         // No permission specified -> visible

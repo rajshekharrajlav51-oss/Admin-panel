@@ -1177,8 +1177,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
             },
         });
-    } else {
-        console.warn("TomSelect init skipped: #select-parent-category not found");
     }
 });
 
@@ -1213,8 +1211,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
             },
         });
-    } else {
-        console.warn("TomSelect init skipped: #select-root-category not found");
     }
 });
 

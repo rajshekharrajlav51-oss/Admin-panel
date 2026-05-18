@@ -15,6 +15,7 @@ if (!$user) {
 
 $request = Illuminate\Http\Request::create('/admin/dashboard', 'GET');
 $request->setUserResolver(fn () => $user);
+Illuminate\Support\Facades\View::share('user', $user);
 
 $controller = $app->make(App\Http\Controllers\Admin\DashboardController::class);
 $response = $controller->index($request);

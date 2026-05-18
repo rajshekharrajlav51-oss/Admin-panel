@@ -16,7 +16,6 @@
 @endphp
 
 @section('admin-content')
-    @if($viewPermission ?? false)
         <div class="row row-deck row-cards">
             <div class="col-sm-12 col-lg-6">
                 <div class="card">
@@ -725,7 +724,6 @@
                 </div>
             </div>
         </div>
-    @endif
 
 @endsection
 @push('styles')
