@@ -29,13 +29,10 @@ class DashboardController extends Controller
         WalletService    $walletService
     )
     {
-        $user = auth()->user();
-
         $this->dashboardService = $dashboardService;
         $this->currencyService = $currencyService;
         $this->walletService = $walletService;
-        $this->viewPermission = $this->hasPermission(AdminPermissionEnum::DASHBOARD_VIEW())
-            || (($user->access_panel ?? null) === 'admin');
+        $this->viewPermission = $this->hasPermission(AdminPermissionEnum::DASHBOARD_VIEW());
     }
 
     /**
@@ -43,6 +40,7 @@ class DashboardController extends Controller
      */
     public function index(Request $request): View
     {
+        $user = $request->user();
         $currencyService = $this->currencyService;
         $dashboardService = $this->dashboardService;
 
@@ -62,7 +60,7 @@ class DashboardController extends Controller
         $categoriesWithFilters = $dashboardService->getCategoriesWithFilters(sortBy: 'products_count', filterBy: 'all');
         $enhancedCommissionsData = $dashboardService->getEnhancedCommissionsData(days: 30, type: 'all');
 
-        $viewPermission = $this->viewPermission;
+        $viewPermission = $this->viewPermission || (($user->access_panel ?? null) === 'admin');
         return view('admin.dashboard', compact(
             'currencyService',
             'adminCommissionChart',
