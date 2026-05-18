@@ -29,10 +29,13 @@ class DashboardController extends Controller
         WalletService    $walletService
     )
     {
+        $user = auth()->user();
+
         $this->dashboardService = $dashboardService;
         $this->currencyService = $currencyService;
         $this->walletService = $walletService;
-        $this->viewPermission = $this->hasPermission(AdminPermissionEnum::DASHBOARD_VIEW());
+        $this->viewPermission = $this->hasPermission(AdminPermissionEnum::DASHBOARD_VIEW())
+            || (($user->access_panel ?? null) === 'admin');
     }
 
     /**
