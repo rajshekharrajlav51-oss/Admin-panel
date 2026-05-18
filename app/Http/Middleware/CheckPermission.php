@@ -36,6 +36,11 @@ class CheckPermission
             return $next($request);
         }
 
+        // Admin panel users should have access to the full admin module set.
+        if ($panel === 'admin' && (($user->access_panel->value ?? null) === 'admin')) {
+            return $next($request);
+        }
+
         // Check if the user has the required permission or is Super Admin
         if ($user->hasPermissionTo($permission) || $user->hasRole(DefaultSystemRolesEnum::SUPER_ADMIN())) {
             return $next($request);

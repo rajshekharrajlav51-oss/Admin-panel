@@ -61,6 +61,7 @@ use App\Policies\OrderReturnPolicy;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -109,6 +110,11 @@ class AuthServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->registerPolicies();
+
+        Gate::before(function ($user, $ability) {
+            return (($user->access_panel->value ?? null) === 'admin') ? true : null;
+        });
+
         $admin_defined = AdminPermissionEnum::values();
         try {
 
