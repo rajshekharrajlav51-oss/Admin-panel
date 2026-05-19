@@ -31,6 +31,7 @@ class AuthenticationSettingResource extends JsonResource
                 'customSmsUrl' => $this->value['customSmsUrl'] ?? '',
                 'customSmsMethod' => $this->value['customSmsMethod'] ?? '',
                 'googleRecaptchaSiteKey' => $this->value['googleRecaptchaSiteKey'] ?? '',
+                'googleRecaptchaSecretKey' => $this->value['googleRecaptchaSecretKey'] ?? '',
                 'firebase' => $this->value['firebase'] ?? null,
                 'fireBaseApiKey' => $this->value['fireBaseApiKey'] ?? '',
                 'fireBaseAuthDomain' => $this->value['fireBaseAuthDomain'] ?? '',
@@ -42,7 +43,6 @@ class AuthenticationSettingResource extends JsonResource
                 'fireBaseMeasurementId' => $this->value['fireBaseMeasurementId'] ?? '',
                 'appleLogin' => $this->value['appleLogin'] ?? null,
                 'googleLogin' => $this->value['googleLogin'] ?? null,
-                'facebookLogin' => $this->value['facebookLogin'] ?? null,
                 'googleApiKey' => $this->value['googleApiKey'] ?? '',
                 'smsGateway' => $smsGateway,
             ]

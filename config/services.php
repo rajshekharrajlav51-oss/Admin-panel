@@ -37,10 +37,9 @@ return [
 
     'firebase' => [
         'credentials' => [
-            'file' => storage_path('app/firebase/firebase-adminsdk-pymed-ebec6e8b34.json'),
+            'file' => storage_path('app/private/settings/service-account-file.json'),
         ],
     ],
 
 
 ];
-

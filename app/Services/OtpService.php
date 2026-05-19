@@ -2,16 +2,25 @@
 
 namespace App\Services;
 
+use App\Enums\SettingTypeEnum;
 use App\Models\UserOtp;
 use Illuminate\Support\Facades\Log;
 
 class OtpService
 {
     protected SmsService $smsService;
+    protected FirebaseConfigService $firebaseConfigService;
+    protected SettingService $settingService;
 
-    public function __construct(SmsService $smsService)
+    public function __construct(
+        SmsService $smsService,
+        FirebaseConfigService $firebaseConfigService,
+        SettingService $settingService
+    )
     {
         $this->smsService = $smsService;
+        $this->firebaseConfigService = $firebaseConfigService;
+        $this->settingService = $settingService;
     }
 
     /**
@@ -106,12 +115,48 @@ class OtpService
     public function sendOtp(string $mobile): array
     {
         $sanitizedMobile = $this->sanitizeMobile($mobile);
+        $gateway = $this->getOtpGateway();
 
         // Debug logging
         Log::info('OTP Send Attempt', [
             'input_mobile' => $mobile,
-            'sanitized_mobile' => $sanitizedMobile
+            'sanitized_mobile' => $sanitizedMobile,
+            'gateway' => $gateway,
         ]);
+
+        if ($gateway === 'firebase') {
+            $firebaseStatus = $this->firebaseConfigService->getFirebaseRuntimeStatus();
+
+            if (!($firebaseStatus['service_account']['valid'] ?? false)) {
+                return [
+                    'success' => false,
+                    'message' => 'Firebase Phone Auth is enabled, but Firebase service account is invalid.',
+                    'debug' => $firebaseStatus['service_account'] ?? [],
+                ];
+            }
+
+            if (!($firebaseStatus['frontend']['valid'] ?? false)) {
+                return [
+                    'success' => false,
+                    'message' => 'Firebase Phone Auth is enabled, but frontend Firebase configuration is incomplete.',
+                    'debug' => $firebaseStatus['frontend'] ?? [],
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Firebase Phone Auth is enabled. Complete OTP verification from the frontend Firebase SDK.',
+                'expires_in' => null,
+                'channel' => 'firebase',
+            ];
+        }
+
+        if ($gateway !== 'custom') {
+            return [
+                'success' => false,
+                'message' => 'No OTP gateway is enabled.',
+            ];
+        }
 
         // Generate OTP
         $otpResult = $this->generateOtp($sanitizedMobile);
@@ -167,6 +212,13 @@ class OtpService
      */
     public function verifyOtp(string $mobile, string $otpCode): array
     {
+        if ($this->getOtpGateway() === 'firebase') {
+            return [
+                'success' => false,
+                'message' => 'Firebase Phone Auth is enabled. Verify the phone number on the frontend and then call auth/phone/callback.',
+            ];
+        }
+
         $mobile = $this->sanitizeMobile($mobile);
 
         // Debug logging
@@ -262,5 +314,21 @@ class OtpService
     public function cleanExpiredOtps(): int
     {
         return UserOtp::where('expires_at', '<', now()->subDay())->delete();
+    }
+
+    public function getOtpGateway(): string
+    {
+        $authSetting = $this->settingService->getRawSetting(SettingTypeEnum::AUTHENTICATION());
+        $config = $authSetting?->value ?? [];
+
+        if (!empty($config['customSms'])) {
+            return 'custom';
+        }
+
+        if (!empty($config['firebase'])) {
+            return 'firebase';
+        }
+
+        return '';
     }
 }

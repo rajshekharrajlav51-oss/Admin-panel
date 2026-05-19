@@ -68,7 +68,8 @@ class OtpApiController extends Controller
                 $result['message'],
                 [
                     'mobile' => $mobile,
-                    'expires_in' => $result['expires_in']
+                    'expires_in' => $result['expires_in'],
+                    'channel' => $result['channel'] ?? 'custom',
                 ]
             );
         }
@@ -315,7 +316,8 @@ class OtpApiController extends Controller
                 'Registration details saved. ' . $result['message'],
                 [
                     'mobile' => $mobile,
-                    'expires_in' => $result['expires_in']
+                    'expires_in' => $result['expires_in'],
+                    'channel' => $result['channel'] ?? 'custom',
                 ]
             );
         }

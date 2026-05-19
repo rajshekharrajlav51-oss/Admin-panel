@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\User\VerifyUserRequest;
 use App\Http\Resources\User\UserResource;
 use App\Models\User;
+use App\Services\FirebaseConfigService;
 use App\Services\SettingService;
 use App\Traits\AuthTrait;
 use App\Types\Api\ApiResponseType;
@@ -29,10 +30,12 @@ class AuthApiController extends Controller
     use AuthTrait;
 
     protected SettingService $settingService;
+    protected FirebaseConfigService $firebaseConfigService;
 
-    public function __construct(SettingService $settingService)
+    public function __construct(SettingService $settingService, FirebaseConfigService $firebaseConfigService)
     {
         $this->settingService = $settingService;
+        $this->firebaseConfigService = $firebaseConfigService;
     }
 
     /**
@@ -97,9 +100,19 @@ class AuthApiController extends Controller
                     'data' => []
                 ];
             }
-            $serviceAccount = storage_path('app/private/settings/service-account-file.json');
 
-            $factory = (new Factory)->withServiceAccount($serviceAccount);
+            $serviceAccountStatus = $this->firebaseConfigService->getServiceAccountStatus();
+            if (!($serviceAccountStatus['valid'] ?? false)) {
+                return [
+                    'success' => false,
+                    'message' => 'Firebase service account is invalid.',
+                    'data' => [
+                        'errors' => $serviceAccountStatus['errors'] ?? [],
+                    ]
+                ];
+            }
+
+            $factory = (new Factory)->withServiceAccount($serviceAccountStatus['credentials']);
             return [
                 'success' => true,
                 'message' => 'labels.token_generated',
@@ -126,7 +139,7 @@ class AuthApiController extends Controller
             // Check if Google login is enabled in settings
             $authSetting = $this->settingService->getSettingByVariable(SettingTypeEnum::AUTHENTICATION());
             $authConfig = $authSetting?->value ?? [];
-            if (empty($authConfig['googleLogin'])) {
+            if (empty($authConfig['googleLogin']) || !$this->firebaseConfigService->isFirebaseEnabled()) {
                 return ApiResponseType::sendJsonResponse(
                     success: false,
                     message: 'labels.google_login_not_enabled',
@@ -252,7 +265,7 @@ class AuthApiController extends Controller
             // Check if Apple login is enabled in settings
             $authSetting = $this->settingService->getSettingByVariable(SettingTypeEnum::AUTHENTICATION());
             $authConfig = $authSetting?->value ?? [];
-            if (empty($authConfig['appleLogin'])) {
+            if (empty($authConfig['appleLogin']) || !$this->firebaseConfigService->isFirebaseEnabled()) {
                 return ApiResponseType::sendJsonResponse(
                     success: false,
                     message: 'labels.apple_login_not_enabled',
@@ -394,6 +407,14 @@ class AuthApiController extends Controller
             $request->validate([
                 'idToken' => 'required|string'
             ]);
+
+            if (!$this->firebaseConfigService->isFirebaseEnabled()) {
+                return ApiResponseType::sendJsonResponse(
+                    success: false,
+                    message: 'Firebase Phone Auth is not enabled.',
+                    data: []
+                );
+            }
 
             $auth = $this->getFirebaseAuth();
             if ($auth['success'] === false) {

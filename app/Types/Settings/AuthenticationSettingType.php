@@ -13,6 +13,7 @@ class AuthenticationSettingType implements SettingInterface
     public string $customSmsUrl = '';
     public string $customSmsMethod = '';
     public string $googleRecaptchaSiteKey = '';
+    public string $googleRecaptchaSecretKey = '';
     public string $customSmsTokenAccountSid = '';
     public string $customSmsAuthToken = '';
     public string $customSmsTextFormatData = "";
@@ -33,7 +34,6 @@ class AuthenticationSettingType implements SettingInterface
     public string $fireBaseMeasurementId = "";
     public bool $appleLogin = false;
     public bool $googleLogin = false;
-    public bool $facebookLogin = false;
     public string $googleApiKey = '';
     public string $smsGateway = '';
 
@@ -62,9 +62,9 @@ class AuthenticationSettingType implements SettingInterface
             'fireBaseAppId' => 'nullable|string',
             'fireBaseMeasurementId' => 'nullable|string',
             'googleRecaptchaSiteKey' => 'nullable|string',
+            'googleRecaptchaSecretKey' => 'nullable|string',
             'appleLogin' => 'boolean',
             'googleLogin' => 'boolean',
-//            'facebookLogin' => 'boolean',
             'googleApiKey' => 'nullable|string',
             'smsGateway' => 'nullable|string|in:custom,firebase',
         ];
@@ -165,11 +165,11 @@ class AuthenticationSettingType implements SettingInterface
 
             // reCAPTCHA
             'googleRecaptchaSiteKey.string' => 'The Google reCAPTCHA site key must be a valid string.',
+            'googleRecaptchaSecretKey.string' => 'The Google reCAPTCHA secret key must be a valid string.',
 
             // Social Logins
             'appleLogin.boolean'    => 'Apple Login must be enabled or disabled (true/false).',
             'googleLogin.boolean'   => 'Google Login must be enabled or disabled (true/false).',
-            'facebookLogin.boolean' => 'Facebook Login must be enabled or disabled (true/false).',
 
             // Google API Key (for Google Login)
             'googleApiKey.string' => 'The Google API Key must be a valid string.',
@@ -179,4 +179,3 @@ class AuthenticationSettingType implements SettingInterface
         ];
     }
 }
-

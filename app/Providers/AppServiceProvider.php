@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\CurrencyService;
+use App\Services\FirebaseConfigService;
 use App\Services\SettingService;
 use App\Models\WalletTransaction;
 use App\Observers\WalletTransactionObserver;
@@ -77,6 +78,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Register model observers safely
         $this->registerObservers();
+
+        $this->logFirebaseConfigIssues();
     }
 
     /**
@@ -180,6 +183,28 @@ class AppServiceProvider extends ServiceProvider
             } catch (\Throwable $e) {
                 Log::warning('Failed to register '.class_basename($observer).': ' . $e->getMessage());
             }
+        }
+    }
+
+    private function logFirebaseConfigIssues(): void
+    {
+        try {
+            $firebase = app(FirebaseConfigService::class);
+            $status = $firebase->getFirebaseRuntimeStatus();
+
+            if (!$status['enabled']) {
+                return;
+            }
+
+            if (!($status['service_account']['valid'] ?? false)) {
+                Log::warning('Firebase service account validation failed', $status['service_account']);
+            }
+
+            if (!($status['frontend']['valid'] ?? false)) {
+                Log::warning('Firebase frontend config validation failed', $status['frontend']);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Unable to validate Firebase configuration: ' . $e->getMessage());
         }
     }
 }

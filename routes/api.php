@@ -38,16 +38,17 @@ include_once("delivery-boy-api.php");
 include_once("seller-api.php");
 
 // User Auth Routes
-Route::post('register', [AuthApiController::class, 'register'])->name('register');
-Route::post('login', [AuthApiController::class, 'login'])->name('login');
-Route::post('forget-password', [PasswordResetController::class, 'sendResetLinkEmail'])->name('password');
-Route::post('verify-user', [AuthApiController::class, 'verifyUser']);
-Route::post('auth/send-otp', [OtpApiController::class, 'sendOtp'])->name('send-otp');
-Route::post('auth/verify-otp', [OtpApiController::class, 'verifyOtp'])->name('verify-otp');
-
-Route::post('auth/google/callback', [AuthApiController::class, 'googleCallback'])->name('google-callback');
-Route::post('auth/apple/callback', [AuthApiController::class, 'appleCallback'])->name('apple-callback');
-Route::post('auth/phone/callback', [AuthApiController::class, 'phoneCallback'])->name('phone-callback');
+Route::middleware('recaptcha')->group(function () {
+    Route::post('register', [AuthApiController::class, 'register'])->name('register');
+    Route::post('login', [AuthApiController::class, 'login'])->name('login');
+    Route::post('forget-password', [PasswordResetController::class, 'sendResetLinkEmail'])->name('password');
+    Route::post('verify-user', [AuthApiController::class, 'verifyUser']);
+    Route::post('auth/send-otp', [OtpApiController::class, 'sendOtp'])->name('send-otp');
+    Route::post('auth/verify-otp', [OtpApiController::class, 'verifyOtp'])->name('verify-otp');
+    Route::post('auth/google/callback', [AuthApiController::class, 'googleCallback'])->name('google-callback');
+    Route::post('auth/apple/callback', [AuthApiController::class, 'appleCallback'])->name('apple-callback');
+    Route::post('auth/phone/callback', [AuthApiController::class, 'phoneCallback'])->name('phone-callback');
+});
 
 // settings
 Route::prefix('settings')->name('api.')->group(function () {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\SettingTypeEnum;
 use App\Http\Controllers\Controller;
+use App\Services\FirebaseConfigService;
 use App\Services\SettingService;
 use App\Types\Api\ApiResponseType;
 use Dedoc\Scramble\Attributes\Group;
@@ -16,10 +17,12 @@ class SettingApiController extends Controller
     use AuthorizesRequests;
 
     protected SettingService $settingService;
+    protected FirebaseConfigService $firebaseConfigService;
 
-    public function __construct(SettingService $settingService)
+    public function __construct(SettingService $settingService, FirebaseConfigService $firebaseConfigService)
     {
         $this->settingService = $settingService;
+        $this->firebaseConfigService = $firebaseConfigService;
     }
 
     public function index(): JsonResponse
@@ -72,21 +75,43 @@ class SettingApiController extends Controller
 
     public function firebaseConfig(): JsonResponse
     {
-        $firebase = $this->settingService->getSettingByVariable(SettingTypeEnum::AUTHENTICATION());
-        $notification = $this->settingService->getSettingByVariable(SettingTypeEnum::NOTIFICATION());
+        $status = $this->firebaseConfigService->getFirebaseRuntimeStatus();
+        $frontend = $status['frontend'];
+        $serviceAccount = $status['service_account'];
+
+        if (!$status['enabled']) {
+            return ApiResponseType::sendJsonResponse(
+                success: false,
+                message: 'Firebase is disabled.',
+                data: []
+            );
+        }
+
+        if (!($serviceAccount['valid'] ?? false)) {
+            return ApiResponseType::sendJsonResponse(
+                success: false,
+                message: 'Firebase service account is invalid.',
+                data: [
+                    'errors' => $serviceAccount['errors'] ?? [],
+                ]
+            );
+        }
+
+        if (!($frontend['valid'] ?? false)) {
+            return ApiResponseType::sendJsonResponse(
+                success: false,
+                message: 'Firebase frontend configuration is incomplete.',
+                data: [
+                    'errors' => $frontend['errors'] ?? [],
+                    'config' => $frontend['config'] ?? [],
+                ]
+            );
+        }
 
         return ApiResponseType::sendJsonResponse(
             success: true,
             message: 'labels.firebase_config_fetched_successfully',
-            data: [
-                'apiKey' => $firebase->value['fireBaseApiKey'] ?? "",
-                'authDomain' => $firebase->value['fireBaseAuthDomain'] ?? "",
-                'projectId' => $firebase->value['fireBaseProjectId'] ?? "",
-                'storageBucket' => $firebase->value['fireBaseStorageBucket'] ?? "",
-                'messagingSenderId' => $firebase->value['fireBaseMessagingSenderId'] ?? "",
-                'appId' => $firebase->value['fireBaseAppId'] ?? "",
-                'vapidKey' => $notification->value['vapIdKey'] ?? ""
-            ]
+            data: $frontend['config'] ?? []
         );
     }
     public function authConfig(): JsonResponse

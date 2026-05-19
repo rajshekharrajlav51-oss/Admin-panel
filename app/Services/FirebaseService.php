@@ -13,33 +13,19 @@ use Kreait\Firebase\Messaging\Notification;
 class FirebaseService
 {
     protected ?Messaging $messaging = null;
+    protected ?array $status = null;
 
-    public function __construct()
+    public function __construct(protected FirebaseConfigService $firebaseConfigService)
     {
-        $path = storage_path('app/private/settings/service-account-file.json');
+        $this->status = $this->firebaseConfigService->getServiceAccountStatus();
 
-        if (!file_exists($path)) {
-            Log::warning('Firebase service account file not found', [
-                'path' => $path,
-            ]);
+        if (!($this->status['valid'] ?? false)) {
+            Log::warning('Firebase service account validation failed', $this->status ?? []);
             return;
         }
 
         try {
-            $json = json_decode(file_get_contents($path), true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \Exception('Invalid Firebase service account JSON');
-            }
-
-            // Required keys validation
-            foreach (['type', 'project_id', 'client_email', 'private_key'] as $key) {
-                if (empty($json[$key])) {
-                    throw new \Exception("Firebase service account missing key: {$key}");
-                }
-            }
-
-            $firebase = (new Factory)->withServiceAccount($json);
+            $firebase = (new Factory)->withServiceAccount($this->status['credentials']);
             $this->messaging = $firebase->createMessaging();
 
         } catch (\Throwable $e) {
@@ -60,6 +46,7 @@ class FirebaseService
             return [
                 'success' => false,
                 'error' => 'Firebase is not configured',
+                'details' => $this->status,
             ];
         }
 
@@ -111,6 +98,7 @@ class FirebaseService
                 'success' => 0,
                 'failure' => count($tokens),
                 'error' => 'Firebase is not configured',
+                'details' => $this->status,
             ];
         }
 
