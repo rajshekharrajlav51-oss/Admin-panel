@@ -344,8 +344,7 @@
                                                     </span>
                                             </label>
                                         </div>
-                                        <div id="firebaseFields"
-                                             style="{{ isset($settings['firebase']) && $settings['firebase'] ? 'display: block;' : 'display: none;' }}">
+                                        <div id="firebaseFields" style="display:block !important;">
                                             <div class="mb-3">
                                                 <label
                                                     class="form-label required">{{ __('labels.firebase_api_key') }}</label>
@@ -517,7 +516,7 @@
             customSmsFields.style.display = customSmsToggle.checked ? 'block' : 'none';
         };
         const toggleFirebaseFields = () => {
-            firebaseFields.style.display = firebaseToggle.checked ? 'block' : 'none';
+            // firebaseFields.style.display = firebaseToggle.checked ? 'block' : 'none';
         };
 
         // Validation function to show SMS gateway priority
