@@ -257,8 +257,8 @@ class StoreController extends Controller
     {
         $this->authorize('create', Store::class);
         $bankAccountTypes = BankAccountTypeEnum::values();
-        $setting = Setting::find(SettingTypeEnum::WEB());
-        $googleApiKey = $setting->value['googleMapKey'] ?? null;
+        $setting = Setting::find(SettingTypeEnum::AUTHENTICATION());
+        $googleApiKey = $setting->value['googleApiKey'] ?? null;
         return view($this->panelView('stores.form'), compact('bankAccountTypes', 'googleApiKey'));
     }
 

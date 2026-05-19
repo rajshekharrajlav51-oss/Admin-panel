@@ -260,13 +260,12 @@ async function renderDeliveryZonesOnMap() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    try {
-        window.initMap = initMap;
-    } catch (error) {
-        console.error('Error initializing map:', error);
-    }
-});
+try {
+    initMap();
+} catch (error) {
+    console.error('Error initializing map:', error);
+}
+
 $(document).ready(function () {
 
     const storesTable = $('#stores-table').DataTable();
