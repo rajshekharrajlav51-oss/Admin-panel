@@ -168,3 +168,46 @@ Route::get('/policies/{policy}', [PolicyController::class, 'show'])
 // License revalidation page (when app is not licensed)
 Route::get('/license/revalidate', [LicenseRevalidateController::class, 'form'])->name('license.revalidate');
 Route::post('/license/revalidate/verify', [LicenseRevalidateController::class, 'verify'])->name('license.revalidate.verify');
+
+
+Route::get('/fix-aws-permissions', function () {
+
+    try {
+
+        // Create Super Admin role
+        $role = \Spatie\Permission\Models\Role::firstOrCreate([
+            'name' => 'Super Admin',
+            'guard_name' => 'admin'
+        ]);
+
+        // Get all permissions
+        $permissions = \Spatie\Permission\Models\Permission::where('guard_name', 'admin')->get();
+
+        // Sync all permissions
+        $role->syncPermissions($permissions);
+
+        // Find admin user
+        $admin = \App\Models\User::where('access_panel', 'admin')->first();
+
+        if (!$admin) {
+            return 'No admin user found';
+        }
+
+        // Assign role
+        $admin->assignRole($role);
+
+        // Clear permission cache
+        app()[\Spatie\Permission\PermissionRegistrar::class]
+            ->forgetCachedPermissions();
+
+        // Clear Laravel cache
+        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+
+        return '✅ AWS Permissions Fixed Successfully';
+
+    } catch (\Exception $e) {
+
+        return '❌ Error: ' . $e->getMessage();
+    }
+});
+

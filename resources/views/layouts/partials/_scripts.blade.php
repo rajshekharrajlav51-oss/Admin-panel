@@ -44,6 +44,24 @@
 
 <script src="{{hyperAsset('assets/js/datatable.custom.js')}}" defer></script>
 <script src="{{hyperAsset('assets/js/custom.js')}}" defer></script>
+@php
+    try {
+        $firebaseFrontendStatus = app(\App\Services\FirebaseConfigService::class)->validateFrontendConfig();
+    } catch (\Throwable $e) {
+        $firebaseFrontendStatus = [
+            'valid' => false,
+            'errors' => [$e->getMessage()],
+            'config' => [],
+        ];
+    }
+@endphp
+<script>
+    window.__firebaseConfig = @json($firebaseFrontendStatus['config'] ?? []);
+    window.__firebaseConfigStatus = @json([
+        'valid' => $firebaseFrontendStatus['valid'] ?? false,
+        'errors' => $firebaseFrontendStatus['errors'] ?? [],
+    ]);
+</script>
 <script type="module" src="{{hyperAsset('assets/js/firebase.js')}}" defer></script>
 <script src="{{hyperAsset('assets/admin/js/custom.js')}}" defer></script>
 <script src="{{hyperAsset('assets/seller/js/custom.js')}}" defer></script>

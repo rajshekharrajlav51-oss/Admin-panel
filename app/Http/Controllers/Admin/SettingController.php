@@ -6,6 +6,7 @@ use App\Enums\SettingTypeEnum;
 use App\Enums\SystemVendorTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\FirebaseConfigService;
 use App\Services\SettingService;
 use App\Types\Api\ApiResponseType;
 use App\Types\Settings\AppSettingType;
@@ -88,14 +89,13 @@ class SettingController extends Controller
                 );
             }
 
+            $this->validateServiceAccountUpload($request, $type);
+
             // Initialize settings object from request data
             $settings = $method::fromArray($request->all());
 
             // Handle media uploads
             $this->handleMediaUploads($request, $settings);
-
-            // Prepare values for storage as array (service will handle encoding + cache)
-            $values = json_decode($settings->toJson(), true);
 
             switch ($type) {
                 case 'authentication':
@@ -111,6 +111,7 @@ class SettingController extends Controller
                     // Automatically set SMS gateway based on enabled services
                     $smsGateway = AuthenticationSettingType::getSmsGateway($request->all());
                     $request->merge(['smsGateway' => $smsGateway]);
+                    $settings->smsGateway = $smsGateway;
                     break;
                 case 'system':
                     // Prevent overwriting existing systemVendorType
@@ -136,6 +137,9 @@ class SettingController extends Controller
                     }
                     break;
             }
+
+            // Prepare values for storage as array (service will handle encoding + cache)
+            $values = json_decode($settings->toJson(), true);
 
             // Authorize the module-wise update action
             try {
@@ -261,6 +265,32 @@ class SettingController extends Controller
                 $path = $file->storeAs($config['path'], $fileName, $disk);
                 $settings->$field = $path;
             }
+        }
+    }
+
+    private function validateServiceAccountUpload(Request $request, string $type): void
+    {
+        if ($type !== SettingTypeEnum::NOTIFICATION() || !$request->hasFile('serviceAccountFile')) {
+            return;
+        }
+
+        $file = $request->file('serviceAccountFile');
+        $contents = file_get_contents($file->getRealPath());
+        $decoded = json_decode($contents, true);
+
+        if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
+            throw ValidationException::withMessages([
+                'serviceAccountFile' => ['The Firebase service account file must contain valid JSON.'],
+            ]);
+        }
+
+        $status = app(FirebaseConfigService::class)->validateServiceAccountData($decoded);
+        if (!$status['valid']) {
+            throw ValidationException::withMessages([
+                'serviceAccountFile' => [
+                    'The uploaded Firebase service account JSON is invalid: ' . implode(', ', $status['errors'] ?? []),
+                ],
+            ]);
         }
     }
 

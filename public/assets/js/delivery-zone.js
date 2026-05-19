@@ -8,8 +8,9 @@ let center = {lat: 40.749933, lng: -73.98633}; // Default center: NYC
 let otherZonePolygons = []; // Other delivery zones overlays
 
 async function initMap() {
-    // Load needed libraries (marker, places, drawing)
-    const [{Map}, {AdvancedMarkerElement}, {DrawingManager}] = await Promise.all([
+    // Load needed libraries (maps, marker, places, drawing)
+    const [{Map}, {AdvancedMarkerElement}, {PlaceAutocompleteElement}, {DrawingManager}] = await Promise.all([
+        google.maps.importLibrary("maps"),
         google.maps.importLibrary("marker"),
         google.maps.importLibrary("places"),
         google.maps.importLibrary("drawing")

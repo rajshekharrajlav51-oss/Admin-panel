@@ -322,6 +322,8 @@ return [
     'google_recaptcha' => 'Google reCAPTCHA',
     'google_recaptcha_site_key' => 'Google reCAPTCHA Site Key',
     'google_recaptcha_site_key_placeholder' => 'Enter reCAPTCHA site key',
+    'google_recaptcha_secret_key' => 'Google reCAPTCHA Secret Key',
+    'google_recaptcha_secret_key_placeholder' => 'Enter reCAPTCHA secret key',
     'firebase' => 'Firebase',
     'firebase_api_key' => 'Firebase API Key',
     'firebase_api_key_placeholder' => 'Enter Firebase API key',

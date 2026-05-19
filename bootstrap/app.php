@@ -8,6 +8,7 @@ use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\StorageCorsMiddleware;
 use App\Http\Middleware\ValidateAdmin;
 use App\Http\Middleware\ValidateSeller;
+use App\Http\Middleware\VerifyRecaptcha;
 use App\Http\Middleware\EnsureSellerHasSubscription;
 use App\Http\Middleware\VerifiedDeliveryBoy;
 use App\Http\Middleware\CheckMaintenanceMode;
@@ -64,6 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'license' => VerifyLicense::class,
             'ensure.system.type' => EnsureSystemVendorTypeSelected::class,
             'ensure.subscription.feature' => EnsureSubscriptionFeatureSelected::class,
+            'recaptcha' => VerifyRecaptcha::class,
         ]);
 
         $middleware->web(prepend: [

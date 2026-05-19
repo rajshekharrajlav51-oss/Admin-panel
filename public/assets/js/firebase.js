@@ -3,19 +3,20 @@ import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/fireb
 
 async function initFirebase() {
     try {
-        let firebaseConfig = JSON.parse(localStorage.getItem("firebase_config"));
+        let firebaseConfig = window.__firebaseConfig || null;
 
-        if (!firebaseConfig) {
+        if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
             const { data } = await axios.get("/api/settings/firebase-config");
             firebaseConfig = data.data;
-            localStorage.setItem("firebase_config", JSON.stringify(firebaseConfig));
         }
 
-        const requiredKeys = ["apiKey", "appId", "projectId", "messagingSenderId"];
+        localStorage.setItem("firebase_config", JSON.stringify(firebaseConfig));
+
+        const requiredKeys = ["apiKey", "authDomain", "appId", "projectId", "messagingSenderId"];
         const hasRequiredConfig = requiredKeys.every((key) => firebaseConfig && firebaseConfig[key]);
 
         if (!hasRequiredConfig) {
-            console.info("Firebase init skipped: incomplete Firebase configuration.");
+            console.info("Firebase init skipped: incomplete Firebase configuration.", window.__firebaseConfigStatus || {});
             return;
         }
 

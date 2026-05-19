@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Setting;
 
 use App\Services\NotificationService;
+use App\Services\FirebaseConfigService;
 use App\Traits\PanelAware;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,10 +33,10 @@ class NotificationSettingResource extends JsonResource
             ]
         ];
 
-        $path = storage_path('app/private/settings/service-account-file.json');
-
-        $json = file_get_contents($path);
-        $jsonContent = json_decode($json, true);
+        $firebaseConfig = app(FirebaseConfigService::class);
+        $status = $firebaseConfig->getServiceAccountStatus();
+        $path = $status['path'] ?? $firebaseConfig->getServiceAccountPath();
+        $jsonContent = $status['credentials'] ?? [];
 
         // Only admin panel can access serviceAccountFile
 
@@ -43,6 +44,7 @@ class NotificationSettingResource extends JsonResource
             $data['value']['serviceAccountFile'] = $this->resource->value['serviceAccountFile'] ?? '';
             $data['value']['serviceAccountFileExist'] = file_exists($path);
             $data['value']['serviceAccountFileData'] = $jsonContent;
+            $data['value']['serviceAccountFileStatus'] = $status;
         }
 
         return $data;

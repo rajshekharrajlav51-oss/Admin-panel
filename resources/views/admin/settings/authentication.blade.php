@@ -315,10 +315,17 @@
                                     <div class="card-body">
                                         <div class="mb-3">
                                             <label
-                                                class="form-label">{{ __('labels.google_recaptcha_site_key') }}</label>
+                                                    class="form-label">{{ __('labels.google_recaptcha_site_key') }}</label>
                                             <input type="text" class="form-control" name="googleRecaptchaSiteKey"
                                                    placeholder="{{ __('labels.google_recaptcha_site_key_placeholder') }}"
                                                    value="{{ ($systemSettings['demoMode'] ?? false) ? Str::mask(($settings['googleRecaptchaSiteKey'] ?? '****'), '****', 3, 8) : ($settings['googleRecaptchaSiteKey'] ?? '') }}"/>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label
+                                                    class="form-label">{{ __('labels.google_recaptcha_secret_key') }}</label>
+                                            <input type="text" class="form-control" name="googleRecaptchaSecretKey"
+                                                   placeholder="{{ __('labels.google_recaptcha_secret_key_placeholder') }}"
+                                                   value="{{ ($systemSettings['demoMode'] ?? false) ? Str::mask(($settings['googleRecaptchaSecretKey'] ?? '****'), '****', 3, 8) : ($settings['googleRecaptchaSecretKey'] ?? '') }}"/>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">{{ __('labels.google_api_key') }}</label>
@@ -344,8 +351,7 @@
                                                     </span>
                                             </label>
                                         </div>
-                                        <div id="firebaseFields"
-                                             style="{{ isset($settings['firebase']) && $settings['firebase'] ? 'display: block;' : 'display: none;' }}">
+                                        <div id="firebaseFields" style="display:block !important;">
                                             <div class="mb-3">
                                                 <label
                                                     class="form-label required">{{ __('labels.firebase_api_key') }}</label>
@@ -517,7 +523,7 @@
             customSmsFields.style.display = customSmsToggle.checked ? 'block' : 'none';
         };
         const toggleFirebaseFields = () => {
-            firebaseFields.style.display = firebaseToggle.checked ? 'block' : 'none';
+            // firebaseFields.style.display = firebaseToggle.checked ? 'block' : 'none';
         };
 
         // Validation function to show SMS gateway priority
