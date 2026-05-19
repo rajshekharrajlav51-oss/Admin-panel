@@ -179,3 +179,4 @@ class AuthenticationSettingType implements SettingInterface
         ];
     }
 }
+

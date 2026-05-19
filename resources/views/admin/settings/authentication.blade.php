@@ -604,3 +604,4 @@
         googleLoginToggle.addEventListener('change', validateMutuallyExclusiveSettings);
     </script>
 @endsection
+
