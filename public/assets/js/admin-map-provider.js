@@ -59,13 +59,19 @@
             loadedMapplsKey = apiKey;
             mapplsSdkPromise = new Promise((resolve, reject) => {
                 const scriptId = 'mappls-web-sdk';
-                const sdkSrcPrefix = 'https://sdk.mappls.com/map/sdk/web';
-                const sdkUrl = `${sdkSrcPrefix}?v=3.0&access_token=${encodeURIComponent(apiKey)}`;
+                const sdkSrcCandidates = [
+                    `https://apis.mappls.com/advancedmaps/api/js?v=3.0&libraries=places,drawing&key=${encodeURIComponent(apiKey)}`,
+                    `https://apis.mappls.com/advancedmaps/api/js?v=3.0&libraries=places,drawing&access_token=${encodeURIComponent(apiKey)}`,
+                    `https://apis.mappls.com/advancedmaps/api/js?v=3.0&libraries=places,drawing&key=${encodeURIComponent(apiKey)}&callback=window.AdminMapplsReadyCallback`,
+                    `https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${encodeURIComponent(apiKey)}`,
+                    `https://sdk.mappls.com/map/sdk/web?v=3.0&key=${encodeURIComponent(apiKey)}`
+                ];
+                let attemptIndex = 0;
                 let script = document.getElementById(scriptId);
                 let loadTimeout = null;
 
                 const diagnosticDetails = {
-                    sdkUrl: maskSdkUrl(sdkUrl),
+                    sdkUrls: sdkSrcCandidates.map((value) => maskSdkUrl(value)),
                     keyPresent: Boolean(apiKey),
                     keyLength: String(apiKey).length,
                     origin: window.location.origin,
@@ -73,66 +79,91 @@
                     windowMapplsPresent: Boolean(window.mappls)
                 };
 
-                Array.from(document.querySelectorAll(`script[src^="${sdkSrcPrefix}"]`)).forEach((item) => {
-                    if (item.id !== scriptId) item.remove();
-                });
+                const cleanupExistingScripts = () => {
+                    Array.from(document.querySelectorAll('script[src*="mappls.com"], script[src*="apis.mappls.com"], script[src*="sdk.mappls.com"]')).forEach((item) => {
+                        if (item.id !== scriptId) item.remove();
+                    });
+                };
 
-                if (script && script.dataset.apiKey !== apiKey) {
-                    script.remove();
-                    script = null;
-                }
-
-                if (window.mappls && script?.dataset.apiKey === apiKey) {
-                    logMapplsDiagnostics('info', 'SDK already available.', diagnosticDetails);
-                    resolve(window.mappls);
-                    return;
-                }
-
-                logMapplsDiagnostics('info', 'Loading SDK script.', diagnosticDetails);
-                script = script || document.createElement('script');
-                script.id = scriptId;
-                script.async = true;
-                script.type = 'text/javascript';
-                script.src = sdkUrl;
-                script.dataset.apiKey = apiKey;
-                script.onload = () => {
-                    window.clearTimeout(loadTimeout);
-                    if (window.mappls && typeof window.mappls.Map === 'function') {
-                        logMapplsDiagnostics('info', 'SDK loaded.', {
+                const tryNextScript = () => {
+                    if (attemptIndex >= sdkSrcCandidates.length) {
+                        logMapplsDiagnostics('error', 'Mappls SDK failed to load from all configured endpoints.', {
                             ...diagnosticDetails,
-                            windowMapplsPresent: true,
                             api: describeMapplsGlobal()
                         });
-                        resolve(window.mappls);
+                        mapplsSdkPromise = null;
+                        reject(new Error('Mappls SDK did not load from the available endpoints. Check the key, domain whitelist, and browser/network restrictions.'));
                         return;
                     }
 
-                    logMapplsDiagnostics('error', 'SDK loaded but expected API is missing.', {
-                        ...diagnosticDetails,
-                        api: describeMapplsGlobal()
-                    });
-                    mapplsSdkPromise = null;
-                    reject(new Error('Mappls SDK loaded, but mappls.Map was not available. Check SDK version and browser console.'));
-                };
-                script.onerror = (event) => {
-                    window.clearTimeout(loadTimeout);
-                    logMapplsDiagnostics('error', 'SDK script failed to load.', {
-                        ...diagnosticDetails,
-                        eventType: event?.type || 'error'
-                    });
-                    mapplsSdkPromise = null;
-                    reject(new Error('Mappls SDK script failed to load from sdk.mappls.com. Check the browser Network tab for status, Static Key referrer restrictions, and CSP.'));
+                    const url = sdkSrcCandidates[attemptIndex];
+                    cleanupExistingScripts();
+
+                    script = script && script.parentElement ? script : document.createElement('script');
+                    script.id = scriptId;
+                    script.async = true;
+                    script.type = 'text/javascript';
+                    script.src = url;
+                    script.dataset.apiKey = apiKey;
+                    script.dataset.sdkUrl = url;
+
+                    const onError = (event) => {
+                        window.clearTimeout(loadTimeout);
+                        attemptIndex += 1;
+                        logMapplsDiagnostics('warn', 'Mappls SDK candidate failed. Trying next endpoint.', {
+                            ...diagnosticDetails,
+                            attemptedUrl: maskSdkUrl(url),
+                            eventType: event?.type || 'error',
+                            api: describeMapplsGlobal()
+                        });
+                        if (script && script.parentElement) script.remove();
+                        tryNextScript();
+                    };
+
+                    script.onerror = onError;
+                    script.onload = () => {
+                        window.clearTimeout(loadTimeout);
+                        if (window.mappls && typeof window.mappls.Map === 'function') {
+                            logMapplsDiagnostics('info', 'SDK loaded.', {
+                                ...diagnosticDetails,
+                                loadedUrl: maskSdkUrl(url),
+                                windowMapplsPresent: true,
+                                api: describeMapplsGlobal()
+                            });
+                            resolve(window.mappls);
+                            return;
+                        }
+
+                        if (!window.mappls || typeof window.mappls.Map !== 'function') {
+                            attemptIndex += 1;
+                            logMapplsDiagnostics('warn', 'Candidate loaded but Map API is missing. Trying next endpoint.', {
+                                ...diagnosticDetails,
+                                attemptedUrl: maskSdkUrl(url),
+                                api: describeMapplsGlobal()
+                            });
+                            if (script && script.parentElement) script.remove();
+                            tryNextScript();
+                            return;
+                        }
+                    };
+
+                    if (!script.parentElement) {
+                        document.head.appendChild(script);
+                    }
+
+                    loadTimeout = window.setTimeout(() => {
+                        logMapplsDiagnostics('warn', 'Mappls SDK candidate timed out. Trying next endpoint.', {
+                            ...diagnosticDetails,
+                            attemptedUrl: maskSdkUrl(url)
+                        });
+                        if (script && script.parentElement) script.remove();
+                        attemptIndex += 1;
+                        tryNextScript();
+                    }, 15000);
                 };
 
-                if (!script.parentElement) {
-                    document.head.appendChild(script);
-                }
-
-                loadTimeout = window.setTimeout(() => {
-                    logMapplsDiagnostics('error', 'SDK script timed out.', diagnosticDetails);
-                    mapplsSdkPromise = null;
-                    reject(new Error('Mappls SDK script timed out. Check internet access, Static Key referrer restrictions, and blocked requests to sdk.mappls.com.'));
-                }, 15000);
+                logMapplsDiagnostics('info', 'Loading Mappls SDK script.', diagnosticDetails);
+                tryNextScript();
             });
         }
 
@@ -289,9 +320,8 @@
     function addMapplsPolygon(map, path, options) {
         if (!path || path.length < 3) return null;
 
-        return new window.mappls.Polygon({
+        const polygonOptions = {
             map,
-            paths: path,
             fillColor: options?.fillColor || '#ff0000',
             fillOpacity: options?.fillOpacity ?? 0.18,
             strokeColor: options?.strokeColor || '#ff0000',
@@ -299,7 +329,19 @@
             strokeWeight: options?.strokeWeight || 2,
             fitbounds: Boolean(options?.fitbounds),
             editable: Boolean(options?.editable)
-        });
+        };
+
+        try {
+            return new window.mappls.Polygon({
+                ...polygonOptions,
+                path
+            });
+        } catch (error) {
+            return new window.mappls.Polygon({
+                ...polygonOptions,
+                paths: path
+            });
+        }
     }
 
     async function createMapplsMap(containerId, config) {

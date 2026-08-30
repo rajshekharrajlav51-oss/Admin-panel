@@ -4,7 +4,15 @@
         const output = document.getElementById('mappls-diagnostics');
         const status = document.getElementById('mappls-diagnostic-status');
         const key = String(config.mapplsStaticKey || '');
-        const sdkUrl = `https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${encodeURIComponent(key)}`;
+        const sdkCandidates = key ? [
+            `https://apis.mappls.com/advancedmaps/api/js?v=3.0&libraries=places,drawing&key=${encodeURIComponent(key)}`,
+            `https://apis.mappls.com/advancedmaps/api/js?v=3.0&libraries=places,drawing&access_token=${encodeURIComponent(key)}`,
+            `https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${encodeURIComponent(key)}`,
+            `https://sdk.mappls.com/map/sdk/web?v=3.0&key=${encodeURIComponent(key)}`
+        ] : [
+            'https://apis.mappls.com/advancedmaps/api/js?v=3.0&libraries=places,drawing'
+        ];
+        const sdkUrl = sdkCandidates[0];
         const startedAt = Date.now();
         let cspViolation = null;
 
