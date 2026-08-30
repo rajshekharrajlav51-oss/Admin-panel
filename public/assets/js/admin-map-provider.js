@@ -33,6 +33,15 @@
         logger.call(console, '[AdminMapProvider:Mappls]', message, details || {});
     }
 
+    function describeMapplsGlobal() {
+        return {
+            typeofMappls: typeof window.mappls,
+            typeofMap: typeof window.mappls?.Map,
+            typeofMarker: typeof window.mappls?.Marker,
+            typeofPolygon: typeof window.mappls?.Polygon
+        };
+    }
+
     function normalizeMapplsCenter(position) {
         return [Number(position.lat), Number(position.lng)];
     }
@@ -88,18 +97,22 @@
                 script.dataset.apiKey = apiKey;
                 script.onload = () => {
                     window.clearTimeout(loadTimeout);
-                    if (window.mappls) {
+                    if (window.mappls && typeof window.mappls.Map === 'function') {
                         logMapplsDiagnostics('info', 'SDK loaded.', {
                             ...diagnosticDetails,
-                            windowMapplsPresent: true
+                            windowMapplsPresent: true,
+                            api: describeMapplsGlobal()
                         });
                         resolve(window.mappls);
                         return;
                     }
 
-                    logMapplsDiagnostics('error', 'SDK loaded but window.mappls is missing.', diagnosticDetails);
+                    logMapplsDiagnostics('error', 'SDK loaded but expected API is missing.', {
+                        ...diagnosticDetails,
+                        api: describeMapplsGlobal()
+                    });
                     mapplsSdkPromise = null;
-                    reject(new Error('Mappls SDK loaded, but window.mappls was not created. Check SDK version and browser console.'));
+                    reject(new Error('Mappls SDK loaded, but mappls.Map was not available. Check SDK version and browser console.'));
                 };
                 script.onerror = (event) => {
                     window.clearTimeout(loadTimeout);
@@ -225,12 +238,18 @@
     }
 
     function addMapplsMarker(map, position, options) {
-        return window.mappls.Marker({
+        const markerOptions = {
             map,
             position,
             fitbounds: false,
             draggable: Boolean(options?.draggable)
-        });
+        };
+
+        try {
+            return new window.mappls.Marker(markerOptions);
+        } catch (error) {
+            return window.mappls.Marker(markerOptions);
+        }
     }
 
     function setMapplsMarkerPosition(marker, position) {
@@ -285,12 +304,23 @@
 
     async function createMapplsMap(containerId, config) {
         const api = await loadMapplsSdk(config.mapplsStaticKey);
-        const map = api.Map(containerId, {
+        const mapOptions = {
             center: normalizeMapplsCenter(config.center),
             zoom: config.zoom || 13,
             zoomControl: true,
             location: true
-        });
+        };
+        let map = null;
+
+        try {
+            map = new api.Map(containerId, mapOptions);
+        } catch (error) {
+            logMapplsDiagnostics('warn', 'Constructor init failed, retrying function init.', {
+                error: error?.message || String(error),
+                api: describeMapplsGlobal()
+            });
+            map = api.Map(containerId, mapOptions);
+        }
 
         if (config.onClick) {
             map.addListener('click', (event) => {

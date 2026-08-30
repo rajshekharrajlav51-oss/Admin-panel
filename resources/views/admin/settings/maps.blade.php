@@ -114,6 +114,11 @@
                         </div>
                         <div class="card-body">
                             <div id="map-settings-status" class="alert alert-info mb-3">Loading map preview...</div>
+                            <div class="mb-3">
+                                <a href="{{ route('admin.mappls.diagnostics') }}" class="btn btn-outline-secondary btn-sm" target="_blank">
+                                    Open Mappls Diagnostics
+                                </a>
+                            </div>
                             <div id="map-settings-search-wrap" class="mb-3">
                                 <input type="search" class="form-control" id="map-settings-search"
                                        placeholder="Search location">

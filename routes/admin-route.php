@@ -37,6 +37,7 @@ use App\Http\Controllers\Admin\VendorTypeController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\SubscriptionFeatureController;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -87,6 +88,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
 
         Route::prefix('mappls')->name('mappls.')->group(function () {
+            Route::get('diagnostics', function () {
+                $maps = Setting::find(\App\Enums\SettingTypeEnum::MAPS())?->value ?? [];
+
+                return view('admin.mappls.diagnostics', [
+                    'mapplsStaticKey' => $maps['mapplsStaticKey']
+                        ?? env('MAPPLS_STATIC_KEY')
+                        ?? env('NEXT_PUBLIC_MAPPLS_STATIC_KEY')
+                        ?? '',
+                    'defaultLatitude' => $maps['defaultLatitude'] ?? '28.6139',
+                    'defaultLongitude' => $maps['defaultLongitude'] ?? '77.2090',
+                    'defaultZoom' => $maps['defaultZoom'] ?? '10',
+                ]);
+            })->name('diagnostics');
             Route::get('autosuggest', [MapplsProxyController::class, 'autosuggest'])->name('autosuggest');
             Route::get('reverse-geocode', [MapplsProxyController::class, 'reverseGeocode'])->name('reverse-geocode');
             Route::get('geocode', [MapplsProxyController::class, 'geocode'])->name('geocode');
