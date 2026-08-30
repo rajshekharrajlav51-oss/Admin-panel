@@ -10,6 +10,9 @@
 @endsection
 
 @section('admin-content')
+    @php
+        $maskedSdkUrl = 'https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=' . (!empty($mapplsStaticKey) ? '***' . substr($mapplsStaticKey, -4) : '');
+    @endphp
     <div class="page-header d-print-none">
         <div class="container-xl">
             <div class="row g-2 align-items-center">
@@ -29,7 +32,18 @@
                             <h3 class="card-title">SDK Request</h3>
                         </div>
                         <div class="card-body">
-                            <pre id="mappls-diagnostics" class="bg-light p-3 rounded small mb-0" style="white-space: pre-wrap;"></pre>
+                            <pre id="mappls-diagnostics" class="bg-light p-3 rounded small mb-0 text-dark" style="white-space: pre-wrap; min-height: 360px; color: #182433;">{{ json_encode([
+                                'state' => 'blade-rendered',
+                                'sdk_url_masked' => $maskedSdkUrl,
+                                'sdk_host' => 'sdk.mappls.com',
+                                'sdk_path' => '/map/sdk/web',
+                                'sdk_version' => '3.0',
+                                'access_token' => !empty($mapplsStaticKey) ? 'Configured' : 'Missing',
+                                'key_length' => strlen((string) $mapplsStaticKey),
+                                'origin' => request()->getSchemeAndHttpHost(),
+                                'path' => request()->path(),
+                                'csp_header' => request()->headers->has('content-security-policy') ? 'Present on request' : 'Not detectable from Blade response',
+                            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
                         </div>
                     </div>
                 </div>
@@ -53,6 +67,7 @@
     <script>
         window.AdminMapplsDiagnosticConfig = {
             mapplsStaticKey: @json($mapplsStaticKey),
+            sdkUrlMasked: @json($maskedSdkUrl),
             defaultCenter: {
                 lat: Number(@json($defaultLatitude)) || 28.6139,
                 lng: Number(@json($defaultLongitude)) || 77.2090
