@@ -35,6 +35,10 @@ return [
         ],
     ],
 
+    'google' => [
+        'maps_api_key' => env('GOOGLE_MAPS_API_KEY', env('GOOGLE_MAP_KEY')),
+    ],
+
     'firebase' => [
         'credentials' => [
             'file' => storage_path('app/firebase/firebase-adminsdk-pymed-ebec6e8b34.json'),
@@ -43,4 +47,3 @@ return [
 
 
 ];
-

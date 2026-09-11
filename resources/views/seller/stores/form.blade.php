@@ -92,6 +92,11 @@
                                         <div class="card-body">
                                             <div id="autocomplete-container" class="form-row" style="display: none;"></div>
                                             <div class="alert alert-info"> {{__('messages.select_zone_message')}}</div>
+                                            @if(empty($googleApiKey))
+                                                <div class="alert alert-warning">
+                                                    Google Maps API key is not configured. Store location map will load after a valid browser API key is added.
+                                                </div>
+                                            @endif
                                             <div id="map"></div>
                                             <div class="mb-3">
                                                 <label
@@ -309,9 +314,15 @@
     </style>
 @endsection
 @push('scripts')
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key={{$googleApiKey}}&libraries=maps,places,marker&callback=initMap"
-        async defer>
-    </script>
     <script src="{{ hyperAsset('assets/js/stores.js')}}"></script>
+    @if(!empty($googleApiKey))
+        <script
+            src="https://maps.googleapis.com/maps/api/js?key={{ urlencode($googleApiKey) }}&libraries=maps,places,marker&callback=initMap&loading=async"
+            async defer>
+        </script>
+    @else
+        <script>
+            window.GoogleMapsConfigurationMissing = true;
+        </script>
+    @endif
 @endpush

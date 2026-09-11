@@ -99,7 +99,7 @@
                         <div class="card-body py-5">
                             <h3 class="card-title">Maps Settings</h3>
                             <p class="text-secondary">
-                                Configure Mappls as the primary map provider and keep Google Maps optional.
+                                Configure Google Maps as the primary map provider.
                             </p>
                         </div>
                     </a>

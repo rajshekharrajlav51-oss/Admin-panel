@@ -295,11 +295,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [DeliveryZoneController::class, 'index'])->name('index');
             Route::post('/', [DeliveryZoneController::class, 'store'])->name('store');
             Route::get('/create', [DeliveryZoneController::class, 'create'])->name('create');
+            Route::get('/datatable', [DeliveryZoneController::class, 'getDeliveryZones'])->name('datatable');
+            Route::post('/check-exists', [DeliveryZoneController::class, 'checkExists'])->name('check_exists');
+            Route::get('/{id}', [DeliveryZoneController::class, 'view'])->name('view');
             Route::get('/{id}/edit', [DeliveryZoneController::class, 'edit'])->name('edit');
             Route::post('/{id}', [DeliveryZoneController::class, 'update'])->name('update');
             Route::delete('/{id}', [DeliveryZoneController::class, 'destroy'])->name('delete');
-            Route::get('/datatable', [DeliveryZoneController::class, 'getDeliveryZones'])->name('datatable');
-            Route::post('/check-exists', [DeliveryZoneController::class, 'checkExists'])->name('check_exists');
         });
 
         // Featured Sections Routes

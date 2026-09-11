@@ -22,8 +22,8 @@ class MapsSettingResource extends JsonResource
         return [
             'variable' => $this->variable,
             'value' => [
-                'mapProvider' => $this->value['mapProvider'] ?? env('MAP_PROVIDER', 'mappls'),
-                'googleMapKey' => $this->value['googleMapKey'] ?? env('GOOGLE_MAP_KEY', ''),
+                'mapProvider' => 'google',
+                'googleMapKey' => $this->value['googleMapKey'] ?? config('services.google.maps_api_key', ''),
                 'mapplsStaticKey' => $mapplsStaticKey,
                 'mapplsStaticKeyConfigured' => !empty($mapplsStaticKey),
                 'defaultLatitude' => $this->value['defaultLatitude'] ?? '28.6139',

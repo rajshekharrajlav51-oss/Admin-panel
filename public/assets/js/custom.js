@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
 
+            clearValidationErrors(form);
+
             const action = form.getAttribute('action');
             const method = (form.getAttribute('method') || 'GET').toUpperCase();
             const formData = new FormData(form);

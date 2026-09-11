@@ -23,7 +23,7 @@
 @else
     <div>
         <x-partial-actions modelName="{{$modelName}}" id="{{$id}}" title="{{$title}}" mode="{{$mode}}"
-                           route="{{$route ?? null}}" editPermission="{{$editPermission ?? false}}"
+                           route="{{$route ?? null}}" editRoute="{{$editRoute ?? null}}" editPermission="{{$editPermission ?? false}}"
                            deletePermission="{{$deletePermission ?? false}}"/>
     </div>
 @endif

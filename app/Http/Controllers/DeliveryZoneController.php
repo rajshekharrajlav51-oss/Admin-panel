@@ -75,6 +75,7 @@ class DeliveryZoneController extends Controller
         $start = $request->get('start');
         $length = $request->get('length');
         $searchValue = $request->get('search')['value'] ?? '';
+        $status = $request->get('status');
 
         $orderColumnIndex = $request->get('order')[0]['column'] ?? 0;
         $orderDirection = $request->get('order')[0]['dir'] ?? 'asc';
@@ -92,6 +93,11 @@ class DeliveryZoneController extends Controller
                 $q->where('name', 'like', "%{$searchValue}%")
                     ->orWhere('slug', 'like', "%{$searchValue}%");
             });
+            $filteredRecords = $query->count();
+        }
+
+        if (in_array($status, ['active', 'inactive'], true)) {
+            $query->where('status', $status);
             $filteredRecords = $query->count();
         }
 
@@ -116,7 +122,8 @@ class DeliveryZoneController extends Controller
                         'id' => $deliveryZone->id,
                         'title' => $deliveryZone->name,
                         'mode' => 'page_view',
-                        'route' => route('admin.delivery-zones.edit', $deliveryZone->id),
+                        'route' => route('admin.delivery-zones.view', $deliveryZone->id),
+                        'editRoute' => route('admin.delivery-zones.edit', $deliveryZone->id),
                         'editPermission' => $this->editPermission,
                         'deletePermission' => $this->deletePermission
                     ])->render(),
@@ -155,25 +162,25 @@ class DeliveryZoneController extends Controller
 
             // Get validated data
             $validatedData = $request->validated();
+            $boundaryJson = $this->parseBoundaryJson($validatedData['boundary_json'] ?? null);
+            if ($boundaryJson === false) {
+                DB::rollBack();
+                return ApiResponseType::sendJsonResponse(
+                    success: false,
+                    message: __('messages.invalid_boundary_json'),
+                    data: ['boundary_json' => [__('labels.boundary_json_invalid')]]
+                );
+            }
+
+            $validatedData['boundary_json'] = $boundaryJson;
             $is_overlap = $this->checkZoneOverLap($validatedData);
             if ($is_overlap['success'] === false) {
+                DB::rollBack();
                 return ApiResponseType::sendJsonResponse(
                     success: false,
                     message: $is_overlap['message'],
                     data: $is_overlap['data']
                 );
-            }
-            // Parse boundary JSON if provided
-            $boundaryJson = null;
-            if (isset($validatedData['boundary_json']) && $validatedData['boundary_json']) {
-                $boundaryJson = json_decode($validatedData['boundary_json'], true);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    return ApiResponseType::sendJsonResponse(
-                        success: false,
-                        message: __('messages.invalid_boundary_json'),
-                        data: ['boundary_json' => [__('labels.boundary_json_invalid')]]
-                    );
-                }
             }
 
             // Create the delivery zone
@@ -273,6 +280,27 @@ class DeliveryZoneController extends Controller
         return view('admin.delivery_zones.form', compact('deliveryZone', 'googleApiKey', 'mapSettings'));
     }
 
+    public function view($id): View
+    {
+        $deliveryZone = DeliveryZone::findOrFail($id);
+        $this->authorize('view', $deliveryZone);
+        $mapSettings = $this->mapSettings();
+        $googleApiKey = $mapSettings['googleMapKey'] ?? null;
+        $deliveryZoneMapConfig = [
+            'provider' => 'google',
+            'center' => [
+                'lat' => (float) $deliveryZone->center_latitude,
+                'lng' => (float) $deliveryZone->center_longitude,
+            ],
+            'radiusKm' => (float) $deliveryZone->radius_km,
+            'boundary' => $deliveryZone->boundary_json,
+            'zoom' => (int) ($mapSettings['defaultZoom'] ?? 13),
+            'readOnly' => true,
+        ];
+
+        return view('admin.delivery_zones.view', compact('deliveryZone', 'googleApiKey', 'mapSettings', 'deliveryZoneMapConfig'));
+    }
+
     /**
      * Update the specified resource in storage.
      */
@@ -283,6 +311,16 @@ class DeliveryZoneController extends Controller
             $this->authorize('update', $deliveryZone);
             event(new DeliveryZoneBeforeUpdate($deliveryZone));
             $validatedData = $request->validated();
+            $boundaryJson = $this->parseBoundaryJson($validatedData['boundary_json'] ?? null);
+            if ($boundaryJson === false) {
+                return ApiResponseType::sendJsonResponse(
+                    success: false,
+                    message: __('messages.invalid_boundary_json'),
+                    data: ['boundary_json' => [__('labels.boundary_json_invalid')]]
+                );
+            }
+
+            $validatedData['boundary_json'] = $boundaryJson;
             $is_overlap = $this->checkZoneOverLap($validatedData, $deliveryZone->id);
             if ($is_overlap['success'] === false) {
                 return ApiResponseType::sendJsonResponse(
@@ -290,18 +328,6 @@ class DeliveryZoneController extends Controller
                     message: $is_overlap['message'],
                     data: $is_overlap['data']
                 );
-            }
-            // Parse boundary JSON if provided
-            $boundaryJson = null;
-            if (isset($validatedData['boundary_json']) && $validatedData['boundary_json']) {
-                $boundaryJson = json_decode($validatedData['boundary_json'], true);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    return ApiResponseType::sendJsonResponse(
-                        success: false,
-                        message: __('messages.invalid_boundary_json'),
-                        data: ['boundary_json' => [__('labels.boundary_json_invalid')]]
-                    );
-                }
             }
 
             $deliveryZone->update([
@@ -445,6 +471,55 @@ class DeliveryZoneController extends Controller
         return response()->json($results);
     }
 
+    public function checkExists(Request $request): JsonResponse
+    {
+        $validatedData = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'center_latitude' => 'required|numeric|between:-90,90',
+            'center_longitude' => 'required|numeric|between:-180,180',
+            'radius_km' => 'required|numeric|min:0.1',
+            'boundary_json' => 'nullable|json',
+            'except_id' => 'nullable|integer|exists:delivery_zones,id',
+        ]);
+
+        $boundaryJson = $this->parseBoundaryJson($validatedData['boundary_json'] ?? null);
+        if ($boundaryJson === false) {
+            return ApiResponseType::sendJsonResponse(
+                success: false,
+                message: __('messages.invalid_boundary_json'),
+                data: ['boundary_json' => [__('labels.boundary_json_invalid')]]
+            );
+        }
+
+        $validatedData['boundary_json'] = $boundaryJson;
+        $overlap = $this->checkZoneOverLap($validatedData, $validatedData['except_id'] ?? null);
+
+        return ApiResponseType::sendJsonResponse(
+            success: true,
+            message: $overlap['success'] ? __('messages.no_overlap_found') : __('messages.delivery_zone_overlap_error'),
+            data: [
+                'exists' => !$overlap['success'],
+                'overlap' => !$overlap['success'],
+                'details' => $overlap['data'],
+            ]
+        );
+    }
+
+    private function parseBoundaryJson($boundaryJson): array|null|false
+    {
+        if (empty($boundaryJson)) {
+            return null;
+        }
+
+        if (is_array($boundaryJson)) {
+            return $boundaryJson;
+        }
+
+        $decodedBoundary = json_decode($boundaryJson, true);
+
+        return json_last_error() === JSON_ERROR_NONE ? $decodedBoundary : false;
+    }
+
     private function checkZoneOverLap($validatedData, $exceptId = null): array
     {
         $tempZone = new DeliveryZone($validatedData);
@@ -479,13 +554,22 @@ class DeliveryZoneController extends Controller
         $maps = Setting::find(SettingTypeEnum::MAPS())?->value ?? [];
         $auth = Setting::find(SettingTypeEnum::AUTHENTICATION())?->value ?? [];
         $web = Setting::find(SettingTypeEnum::WEB())?->value ?? [];
+        $googleMapKey = null;
+        foreach ([
+            $maps['googleMapKey'] ?? null,
+            $auth['googleApiKey'] ?? null,
+            $web['googleMapKey'] ?? null,
+            config('services.google.maps_api_key'),
+        ] as $key) {
+            if (filled($key)) {
+                $googleMapKey = (string) $key;
+                break;
+            }
+        }
 
         return [
-            'mapProvider' => $maps['mapProvider'] ?? env('MAP_PROVIDER', 'mappls'),
-            'googleMapKey' => $maps['googleMapKey']
-                ?? $auth['googleApiKey']
-                ?? $web['googleMapKey']
-                ?? env('GOOGLE_MAP_KEY', ''),
+            'mapProvider' => 'google',
+            'googleMapKey' => $googleMapKey,
             'mapplsStaticKey' => $maps['mapplsStaticKey']
                 ?? env('MAPPLS_STATIC_KEY')
                 ?? env('NEXT_PUBLIC_MAPPLS_STATIC_KEY')

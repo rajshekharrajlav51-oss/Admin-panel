@@ -257,8 +257,7 @@ class StoreController extends Controller
     {
         $this->authorize('create', Store::class);
         $bankAccountTypes = BankAccountTypeEnum::values();
-        $setting = Setting::find(SettingTypeEnum::WEB());
-        $googleApiKey = $setting->value['googleMapKey'] ?? null;
+        $googleApiKey = $this->googleMapsApiKey();
         return view($this->panelView('stores.form'), compact('bankAccountTypes', 'googleApiKey'));
     }
 
@@ -334,8 +333,7 @@ class StoreController extends Controller
         $store = Store::findOrFail($id);
         $this->authorize('update', $store);
         $bankAccountTypes = BankAccountTypeEnum::values();
-        $setting = Setting::find(SettingTypeEnum::AUTHENTICATION());
-        $googleApiKey = $setting->value['googleApiKey'] ?? null;
+        $googleApiKey = $this->googleMapsApiKey();
         return view($this->panelView('stores.form'), compact('bankAccountTypes', 'store', 'googleApiKey'));
     }
 
@@ -576,5 +574,25 @@ class StoreController extends Controller
         });
 
         return response()->json($results);
+    }
+
+    private function googleMapsApiKey(): ?string
+    {
+        $maps = Setting::find(SettingTypeEnum::MAPS())?->value ?? [];
+        $web = Setting::find(SettingTypeEnum::WEB())?->value ?? [];
+        $auth = Setting::find(SettingTypeEnum::AUTHENTICATION())?->value ?? [];
+
+        foreach ([
+            $maps['googleMapKey'] ?? null,
+            $web['googleMapKey'] ?? null,
+            $auth['googleApiKey'] ?? null,
+            config('services.google.maps_api_key'),
+        ] as $key) {
+            if (filled($key)) {
+                return (string) $key;
+            }
+        }
+
+        return null;
     }
 }

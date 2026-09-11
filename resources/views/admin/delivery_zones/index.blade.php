@@ -71,6 +71,14 @@
                         </div>
                         <div class="card-table">
                             <div class="row w-full p-3">
+                                <div class="col-md-3 mb-3">
+                                    <label for="delivery-zone-status-filter" class="form-label">Status</label>
+                                    <select id="delivery-zone-status-filter" class="form-select">
+                                        <option value="">All statuses</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
                                 <x-datatable id="delivery-zones-table" :columns="$columns"
                                              route="{{ route('admin.delivery-zones.datatable') }}"
                                              :options="['order' => [[0, 'desc']],'pageLength' => 10,]"/>
@@ -83,5 +91,5 @@
     </div>
 @endsection
 @push('script')
-    <script src="{{ hyperAsset('assets/js/delivery-zone.js') }}"></script>
+    <script src="{{ hyperAsset('assets/js/delivery-zone-list.js') }}"></script>
 @endpush

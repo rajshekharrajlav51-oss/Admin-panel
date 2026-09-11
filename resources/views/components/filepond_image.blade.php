@@ -1,12 +1,16 @@
 <div>
+    @php
+        $isDisabled = filter_var($disabled ?? false, FILTER_VALIDATE_BOOLEAN);
+        $isMultiple = filter_var($multiple ?? false, FILTER_VALIDATE_BOOLEAN);
+    @endphp
     <input
         type="file"
         class="form-control"
         id="{{ $id ?? $name }}"
         name="{{ $name }}"
         data-image-url="{{ $imageUrl ?? '' }}"
-        disabled="{{ $disabled ?? 'false' }}"
-        multiple="{{ $multiple ?? 'false' }}"
+        @disabled($isDisabled)
+        @if($isMultiple) multiple @endif
     />
 </div>
 <script>

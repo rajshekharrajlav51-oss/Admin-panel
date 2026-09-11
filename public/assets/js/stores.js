@@ -260,11 +260,11 @@ async function renderDeliveryZonesOnMap() {
     });
 }
 
+window.initMap = initMap;
+
 document.addEventListener('DOMContentLoaded', function () {
-    try {
-        window.initMap = initMap;
-    } catch (error) {
-        console.error('Error initializing map:', error);
+    if (window.GoogleMapsConfigurationMissing) {
+        console.warn('Google Maps API key is not configured for the Seller Store Location map.');
     }
 });
 $(document).ready(function () {

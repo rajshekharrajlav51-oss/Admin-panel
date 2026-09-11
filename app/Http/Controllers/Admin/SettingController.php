@@ -109,7 +109,7 @@ class SettingController extends Controller
                             ?? '';
                     }
                     if (empty($values['googleMapKey'])) {
-                        $values['googleMapKey'] = $currentMaps['googleMapKey'] ?? env('GOOGLE_MAP_KEY', '');
+                        $values['googleMapKey'] = $currentMaps['googleMapKey'] ?? config('services.google.maps_api_key', '');
                     }
                     break;
                 case 'authentication':

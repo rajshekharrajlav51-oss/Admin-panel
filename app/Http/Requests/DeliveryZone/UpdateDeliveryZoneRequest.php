@@ -17,6 +17,33 @@ class UpdateDeliveryZoneRequest extends FormRequest
         return true; // Authorization is handled in the controller
     }
 
+    protected function prepareForValidation(): void
+    {
+        $numericDefaults = [
+            'rush_delivery_time_per_km',
+            'rush_delivery_charges',
+            'free_delivery_amount',
+            'distance_based_delivery_charges',
+            'per_store_drop_off_fee',
+            'handling_charges',
+            'delivery_boy_base_fee',
+            'delivery_boy_per_store_pickup_fee',
+            'delivery_boy_distance_based_fee',
+            'delivery_boy_per_order_incentive',
+        ];
+
+        $input = [];
+        foreach ($numericDefaults as $field) {
+            if ($this->has($field) && $this->input($field) === '') {
+                $input[$field] = 0;
+            }
+        }
+
+        if ($input !== []) {
+            $this->merge($input);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -36,8 +63,8 @@ class UpdateDeliveryZoneRequest extends FormRequest
             'boundary_json' => 'nullable|json',
             'status' => ['nullable', new Enum(ActiveInactiveStatusEnum::class)],
             'rush_delivery_enabled' => 'boolean',
-            'rush_delivery_time_per_km' => 'required_if:rush_delivery_enabled,true|min:0',
-            'rush_delivery_charges' => 'required_if:rush_delivery_enabled,true|min:0',
+            'rush_delivery_time_per_km' => 'required_if:rush_delivery_enabled,true|numeric|min:0',
+            'rush_delivery_charges' => 'required_if:rush_delivery_enabled,true|numeric|min:0',
             'regular_delivery_charges' => 'required|numeric|min:0',
             'free_delivery_amount' => 'nullable|numeric|min:0',
             'distance_based_delivery_charges' => 'nullable|numeric|min:0',
