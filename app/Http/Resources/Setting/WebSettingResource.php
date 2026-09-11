@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Setting;
 
+use App\Enums\SettingTypeEnum;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,6 +16,8 @@ class WebSettingResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $systemLogo = Setting::find(SettingTypeEnum::SYSTEM())?->value['logo'] ?? '';
+
         return [
             'variable' => $this->variable,
             'value' => [
@@ -24,18 +28,12 @@ class WebSettingResource extends JsonResource
                 'supportEmail' => $this->value['supportEmail'] ?? '',
                 'address' => $this->value['address'] ?? '',
                 'shortDescription' => $this->value['shortDescription'] ?? '',
-                'siteHeaderLogo' => !empty($this->value['siteHeaderLogo'])
-                    ? url('storage/' . $this->value['siteHeaderLogo']) . '?v=' . time()
-                    : '',
-                'siteHeaderDarkLogo' => !empty($this->value['siteHeaderDarkLogo'])
-                    ? url('storage/' . $this->value['siteHeaderDarkLogo']) . '?v=' . time()
-                    : '',
+                'siteHeaderLogo' => $this->storageUrl(($this->value['siteHeaderLogo'] ?? '') ?: $systemLogo, true),
+                'siteHeaderDarkLogo' => $this->storageUrl(($this->value['siteHeaderDarkLogo'] ?? '') ?: $systemLogo, true),
 
-                'siteFooterLogo' => !empty($this->value['siteFooterLogo'])
-                    ? url('storage/' . $this->value['siteFooterLogo']) . '?v=' . time()
-                    : '',
+                'siteFooterLogo' => $this->storageUrl(($this->value['siteFooterLogo'] ?? '') ?: $systemLogo, true),
 
-                'siteFavicon' => !empty($this->value['siteFavicon']) ? url('storage/' . $this->value['siteFavicon']) : '',
+                'siteFavicon' => $this->storageUrl($this->value['siteFavicon'] ?? ''),
                 'headerScript' => $this->value['headerScript'] ?? '',
                 'footerScript' => $this->value['footerScript'] ?? '',
                 'googleMapKey' => $this->value['googleMapKey'] ?? '',
@@ -75,10 +73,21 @@ class WebSettingResource extends JsonResource
                 'aboutUs' => $this->value['aboutUs'] ?? '',
                 'pwaName' => $this->value['pwaName'] ?? '',
                 'pwaDescription' => $this->value['pwaDescription'] ?? '',
-                'pwaLogo144x144' => !empty($this->value['pwaLogo144x144']) ? url('storage/' . $this->value['pwaLogo144x144']) : '',
-                'pwaLogo192x192' => !empty($this->value['pwaLogo192x192']) ? url('storage/' . $this->value['pwaLogo192x192']) : '',
-                'pwaLogo512x512' => !empty($this->value['pwaLogo512x512']) ? url('storage/' . $this->value['pwaLogo512x512']) : '',
+                'pwaLogo144x144' => $this->storageUrl($this->value['pwaLogo144x144'] ?? ''),
+                'pwaLogo192x192' => $this->storageUrl($this->value['pwaLogo192x192'] ?? ''),
+                'pwaLogo512x512' => $this->storageUrl($this->value['pwaLogo512x512'] ?? ''),
             ]
         ];
+    }
+
+    private function storageUrl(?string $path, bool $versioned = false): string
+    {
+        if (empty($path)) {
+            return '';
+        }
+
+        $url = url('storage/' . ltrim($path, '/'));
+
+        return $versioned ? $url . '?v=' . time() : $url;
     }
 }

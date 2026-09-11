@@ -7,7 +7,6 @@ use App\Traits\PanelAware;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class NotificationSettingResource extends JsonResource
 {
@@ -32,16 +31,21 @@ class NotificationSettingResource extends JsonResource
             ]
         ];
 
-        $path = storage_path('app/private/settings/service-account-file.json');
-
-        $json = file_get_contents($path);
-        $jsonContent = json_decode($json, true);
-
         // Only admin panel can access serviceAccountFile
 
         if ($this->getPanel() === 'admin') {
+            $path = storage_path('app/private/settings/service-account-file.json');
+            $serviceAccountFileExists = is_file($path) && is_readable($path);
+            $jsonContent = null;
+
+            if ($serviceAccountFileExists) {
+                $json = file_get_contents($path);
+                $decoded = json_decode($json ?: '', true);
+                $jsonContent = json_last_error() === JSON_ERROR_NONE ? $decoded : null;
+            }
+
             $data['value']['serviceAccountFile'] = $this->resource->value['serviceAccountFile'] ?? '';
-            $data['value']['serviceAccountFileExist'] = file_exists($path);
+            $data['value']['serviceAccountFileExist'] = $serviceAccountFileExists;
             $data['value']['serviceAccountFileData'] = $jsonContent;
         }
 
